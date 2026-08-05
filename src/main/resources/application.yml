@@ -1,0 +1,77 @@
+spring:
+  application:
+    name: pqc-hybrid-starter
+  security:
+    user:
+      name: admin
+      password: pqc-demo
+
+pqc:
+  enabled: true    # set false to disable all PQC (classical only)
+  # ── Phase 3: Key Management ──────────────────────────────────────────────
+  # Uncomment ONE provider block to enable persistent key management.
+  # Without this, the orchestrator uses ephemeral in-memory keys (Phase 1/2).
+  #
+  # key-management:
+  #
+  #   # ── Option A: Local dev (file-based AES-256-GCM, NOT for production) ──
+  #   provider: local
+  #   local:
+  #     key-store-path: ${user.home}/.pqc-starter-lib/local-master.key
+  #     auto-generate: true
+  #
+  #   # ── Option B: HashiCorp Vault ────────────────────────────────────────
+  #   provider: hashicorp-vault
+  #   vault:
+  #     uri: http://localhost:8200
+  #     token: dev-root-token
+  #     transit-key-name: pqc-starter-lib-master
+  #     kv-mount-path: secret
+  #     kv-key-path: pqc-starter-lib/keys
+  #
+  #   # ── Option C: AWS KMS (stub) ─────────────────────────────────────────
+  #   provider: aws-kms
+  #   aws:
+  #     region: us-east-1
+  #     key-arn: arn:aws:kms:us-east-1:123456789012:key/your-key-id
+  #
+  #   # ── Key Rotation Policy (applies to all providers) ───────────────────
+  #   rotation:
+  #     enabled: false
+  #     interval-days: 90
+  #     deprecation-window-days: 7
+  #     cron: "0 0 2 * * *"
+  # ── Phase 5: RSA Migration Bridge ────────────────────────────────────────
+  # Controls gradual migration from RSA-2048 to Kyber/Hybrid PQC.
+  #
+  # migration:
+  #   enabled: true                  # default: true
+  #   default-mode: BRIDGE           # RSA_ONLY | BRIDGE | PQC_ONLY (default: BRIDGE)
+  #   rollout-percentage: 100        # 0–100: % of BRIDGE sessions using PQC (default: 100)
+  #   service-overrides:             # per-service forced mode (overrides % for that clientId)
+  #     legacy-billing-svc: RSA_ONLY
+  #     auth-svc: PQC_ONLY
+  # ── Phase 6: Data at Rest ─────────────────────────────────────────────────
+  # Field-level and file encryption with HKDF per-record key isolation.
+  #
+  # atrest:
+  #   enabled: true                   # default: true
+  #   master-key-hex: ""              # 64 hex chars (32 bytes); auto-random if blank (dev only)
+  #   master-key-version: 1           # increment after key rotation (triggers lazy re-encryption)
+  #   chunk-size: 4096                # streaming chunk size in bytes (default: 4096)
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,pqc
+  endpoint:
+    pqc:
+      enabled: true
+
+logging:
+  level:
+    com.pqc: DEBUG

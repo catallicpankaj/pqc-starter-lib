@@ -1,0 +1,4 @@
+com.pqc.hybrid.autoconfigure.PqcAutoConfiguration
+com.pqc.hybrid.keymanagement.config.KeyManagementAutoConfiguration
+com.pqc.hybrid.migration.config.RsaMigrationAutoConfiguration
+com.pqc.hybrid.atrest.config.AtRestEncryptionAutoConfiguration

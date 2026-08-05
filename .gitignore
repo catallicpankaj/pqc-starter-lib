@@ -1,0 +1,20 @@
+target/
+*.class
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Local dev key store (LocalDevKeyProvider default path, if ever run from repo root)
+.pqc-starter-lib/
