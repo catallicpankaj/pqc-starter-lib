@@ -7,6 +7,7 @@ import org.bouncycastle.pqc.jcajce.provider.BouncyCastlePQCProvider;
 import org.bouncycastle.pqc.jcajce.spec.KyberParameterSpec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
@@ -30,6 +31,7 @@ import java.util.Objects;
  *   Ciphertext:  1088 bytes
  *   Shared secret: 32 bytes
  */
+@Component
 public class KyberKemEngine {
 
     private static final Logger log = LoggerFactory.getLogger(KyberKemEngine.class);

@@ -1,5 +1,7 @@
 package com.pqc.hybrid.crypto;
 
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -9,6 +11,7 @@ import org.springframework.stereotype.Service;
 import com.pqc.hybrid.handshake.ClientCapability;
 import com.pqc.hybrid.handshake.HandshakeSession;
 import com.pqc.hybrid.handshake.HybridHandshakeOrchestrator;
+import com.pqc.hybrid.handshake.KyberKemEngine;
 
 /**
  * ═══════════════════════════════════════════════════════════════════════
@@ -37,7 +40,7 @@ import com.pqc.hybrid.handshake.HybridHandshakeOrchestrator;
  *   Integrity:      GCM tag — any tampering detected automatically
  *   Replay attack:  Session ID as AAD — ciphertext bound to one session
  *
- * USAGE:
+ * USAGE — session-based (both sides share a live HandshakeSession, single JVM today):
  *
  *   // In your controller/service — just autowire and use:
  *   @Autowired PqcEncryptionService pqcEncryption;
@@ -50,18 +53,36 @@ import com.pqc.hybrid.handshake.HybridHandshakeOrchestrator;
  *
  *   // Decrypt on the other side
  *   String decrypted = pqcEncryption.decryptForSession(session.getSessionId(), encrypted);
+ *
+ * USAGE — public-key-addressed (no session; encrypt directly to a known recipient's Kyber public
+ * key — the shape needed for real cross-service messaging or at-rest field encryption):
+ *
+ *   PqcEncryptedPayload encrypted = pqcEncryption.encrypt(data, recipientPublicKey);
+ *   byte[] plaintext              = pqcEncryption.decrypt(encrypted, myPrivateKey);
  */
 @Service
 public class PqcEncryptionService {
 
     private static final Logger log = LoggerFactory.getLogger(PqcEncryptionService.class);
 
+    /**
+     * Fixed AAD for the public-key-addressed encrypt()/decrypt() methods below. Unlike the
+     * session-based flow (where AAD is the session ID, binding ciphertext to a specific live
+     * session to stop cross-session replay), there is no session concept here — each encryption
+     * already uses a fresh, single-use Kyber shared secret, so AAD isn't load-bearing for replay
+     * protection. A fixed constant satisfies AesGcmEngine's AAD parameter and labels the format.
+     */
+    private static final String PUBLIC_KEY_AAD = "pqc-encrypted-payload";
+
     private final HybridHandshakeOrchestrator orchestrator;
     private final AesGcmEngine                aesGcm;
+    private final KyberKemEngine              kyberEngine;
 
-    public PqcEncryptionService(HybridHandshakeOrchestrator orchestrator, AesGcmEngine aesGcm) {
+    public PqcEncryptionService(HybridHandshakeOrchestrator orchestrator, AesGcmEngine aesGcm,
+                                 KyberKemEngine kyberEngine) {
         this.orchestrator = orchestrator;
         this.aesGcm       = aesGcm;
+        this.kyberEngine  = kyberEngine;
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -164,6 +185,77 @@ public class PqcEncryptionService {
         HandshakeSession session = getSessionOrThrow(sessionId);
         AesGcmEngine.EncryptedPayload payload = aesGcm.fromBase64Wire(base64, sessionId);
         return aesGcm.decrypt(session.getSessionKeyMaterial(), payload);
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // PUBLIC-KEY-ADDRESSED ENCRYPTION — no session, no prior handshake
+    // ─────────────────────────────────────────────────────────────
+    //
+    // Unlike encryptForSession()/decryptForSession() above (which require both sides to share
+    // a live, previously-established HandshakeSession — only possible within one JVM today),
+    // these methods encrypt directly to a known recipient's Kyber-768 public key. There is no
+    // session state: the recipient only needs their own private key to decrypt, regardless of
+    // where or when the ciphertext arrives. This is the shape needed for actual cross-service
+    // messaging, at-rest field encryption, or any store-and-forward use case.
+    //
+    // Kyber-768 encapsulate() itself produces a fresh, single-use shared secret per call — that
+    // 32-byte secret is used directly as the AES-256 key (standard KEM/DEM composition; no
+    // additional KDF step needed for a one-time secret this size).
+
+    /**
+     * Encrypt data to a recipient's Kyber-768 public key. No session or prior handshake required —
+     * the recipient can decrypt with only their matching private key, whenever the ciphertext
+     * arrives.
+     *
+     * @param data               plaintext bytes to encrypt
+     * @param recipientPublicKey recipient's Kyber-768 public key
+     * @return                   a {@link PqcEncryptedPayload} carrying everything the recipient
+     *                           needs to decrypt — safe to serialize as JSON (e.g. a
+     *                           {@code @RequestBody}) or via {@link PqcEncryptedPayload#toBytes()}
+     */
+    public PqcEncryptedPayload encrypt(byte[] data, PublicKey recipientPublicKey) throws Exception {
+        KyberKemEngine.KemResult kem = kyberEngine.encapsulate(recipientPublicKey);
+        AesGcmEngine.EncryptedPayload aesPayload =
+            aesGcm.encrypt(kem.sharedSecret(), data, PUBLIC_KEY_AAD);
+
+        log.debug("encrypt(recipientPublicKey): {} bytes → {} byte encapsulated key + {} byte ciphertext",
+            data.length, kem.ciphertext().length, aesPayload.ciphertextWithTag().length);
+
+        return new PqcEncryptedPayload(kem.ciphertext(), aesPayload.iv(), aesPayload.ciphertextWithTag());
+    }
+
+    /**
+     * Convenience: {@link #encrypt(byte[], PublicKey)} but returns the serialized wire bytes
+     * directly ({@code PqcEncryptedPayload.toBytes()}) — for callers storing ciphertext as a
+     * single blob (e.g. a database column) rather than working with the structured payload.
+     */
+    public byte[] encryptToBytes(byte[] data, PublicKey recipientPublicKey) throws Exception {
+        return encrypt(data, recipientPublicKey).toBytes();
+    }
+
+    /**
+     * Decrypt a {@link PqcEncryptedPayload} with the matching Kyber-768 private key.
+     * Automatically verifies the GCM authentication tag — throws if the payload was tampered with
+     * or the private key does not match the public key it was encrypted to.
+     */
+    public byte[] decrypt(PqcEncryptedPayload payload, PrivateKey privateKey) throws Exception {
+        byte[] sharedSecret = kyberEngine.decapsulate(privateKey, payload.encapsulatedKey());
+        AesGcmEngine.EncryptedPayload aesPayload =
+            new AesGcmEngine.EncryptedPayload(payload.iv(), payload.ciphertext(), PUBLIC_KEY_AAD);
+        byte[] plaintext = aesGcm.decrypt(sharedSecret, aesPayload);
+
+        log.debug("decrypt(privateKey): {} byte ciphertext → {} bytes",
+            payload.ciphertext().length, plaintext.length);
+
+        return plaintext;
+    }
+
+    /**
+     * Convenience: decrypt from the serialized wire bytes produced by
+     * {@link PqcEncryptedPayload#toBytes()} / {@link #encryptToBytes(byte[], PublicKey)}.
+     */
+    public byte[] decrypt(byte[] serializedPayload, PrivateKey privateKey) throws Exception {
+        return decrypt(PqcEncryptedPayload.fromBytes(serializedPayload), privateKey);
     }
 
     // ─────────────────────────────────────────────────────────────

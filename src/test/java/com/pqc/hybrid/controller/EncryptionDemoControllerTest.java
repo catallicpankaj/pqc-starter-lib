@@ -4,6 +4,7 @@ import com.pqc.hybrid.crypto.AesGcmEngine;
 import com.pqc.hybrid.crypto.PqcEncryptionService;
 import com.pqc.hybrid.handshake.HandshakeSession;
 import com.pqc.hybrid.handshake.HybridHandshakeOrchestrator;
+import com.pqc.hybrid.handshake.KyberKemEngine;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.pqc.jcajce.provider.BouncyCastlePQCProvider;
 import org.junit.jupiter.api.*;
@@ -33,7 +34,7 @@ class EncryptionDemoControllerTest {
 
         HybridHandshakeOrchestrator orchestrator = new HybridHandshakeOrchestrator(Optional.empty());
         AesGcmEngine aesGcm = new AesGcmEngine();
-        pqcEncryption = new PqcEncryptionService(orchestrator, aesGcm);
+        pqcEncryption = new PqcEncryptionService(orchestrator, aesGcm, new KyberKemEngine());
         EncryptionDemoController controller = new EncryptionDemoController(pqcEncryption, orchestrator, aesGcm);
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
     }

@@ -40,7 +40,7 @@ class AesGcmEngineTest {
         if (Security.getProvider("BCPQC") == null) Security.insertProviderAt(new BouncyCastlePQCProvider(), 2);
         aesGcm        = new AesGcmEngine();
         orchestrator  = new HybridHandshakeOrchestrator();
-        pqcEncryption = new PqcEncryptionService(orchestrator, aesGcm);
+        pqcEncryption = new PqcEncryptionService(orchestrator, aesGcm, new KyberKemEngine());
     }
 
     // ── AES-GCM Core Tests ────────────────────────────────────────

@@ -6,7 +6,9 @@ import com.pqc.hybrid.atrest.AtRestEncryptionService;
 import com.pqc.hybrid.atrest.config.AtRestEncryptionAutoConfiguration;
 import com.pqc.hybrid.crypto.AesGcmEngine;
 import com.pqc.hybrid.crypto.PqcEncryptionService;
+import com.pqc.hybrid.crypto.PqcKeyPairGenerator;
 import com.pqc.hybrid.handshake.HybridHandshakeOrchestrator;
+import com.pqc.hybrid.handshake.KyberKemEngine;
 import com.pqc.hybrid.jwt.DilithiumJwtAuthController;
 import com.pqc.hybrid.keymanagement.api.KeyManagementProvider;
 import com.pqc.hybrid.keymanagement.config.KeyManagementAutoConfiguration;
@@ -15,6 +17,7 @@ import com.pqc.hybrid.keymanagement.service.QuantumKeyService;
 import com.pqc.hybrid.migration.RsaKyberBridgeService;
 import com.pqc.hybrid.migration.RsaMigrationController;
 import com.pqc.hybrid.migration.config.RsaMigrationAutoConfiguration;
+import com.pqc.hybrid.signing.PqcSignatureService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -47,9 +50,19 @@ class PqcAutoConfigurationWiringTest {
     void defaultContextRegistersCoreBeans() {
         runner.run(context -> {
             assertThat(context).hasSingleBean(HybridHandshakeOrchestrator.class);
+            assertThat(context).hasSingleBean(KyberKemEngine.class);
             assertThat(context).hasSingleBean(AesGcmEngine.class);
             // This exact bean was missing entirely in a previous revision — regression guard.
             assertThat(context).hasSingleBean(PqcEncryptionService.class);
+        });
+    }
+
+    @Test
+    @DisplayName("Default context: PqcSignatureService and PqcKeyPairGenerator are registered without any config")
+    void defaultContextRegistersSignatureAndKeyGenBeans() {
+        runner.run(context -> {
+            assertThat(context).hasSingleBean(PqcSignatureService.class);
+            assertThat(context).hasSingleBean(PqcKeyPairGenerator.class);
         });
     }
 
@@ -157,6 +170,30 @@ class PqcAutoConfigurationWiringTest {
             });
     }
 
+    @Test
+    @DisplayName("@ConditionalOnMissingBean: a user-supplied PqcSignatureService bean overrides the auto-configured one")
+    void userBeanOverridesAutoConfiguredSignatureService() {
+        runner.withUserConfiguration(UserSuppliedSignatureServiceConfig.class)
+            .run(context -> {
+                assertThat(context).hasSingleBean(PqcSignatureService.class);
+                assertThat(context.getBean(PqcSignatureService.class))
+                    .isSameAs(UserSuppliedSignatureServiceConfig.INSTANCE);
+                // Overriding one bean must not affect the others.
+                assertThat(context).hasSingleBean(PqcKeyPairGenerator.class);
+            });
+    }
+
+    @Configuration
+    static class UserSuppliedSignatureServiceConfig {
+        static PqcSignatureService INSTANCE;
+
+        @Bean
+        PqcSignatureService pqcSignatureService(com.pqc.hybrid.signing.DilithiumSigningEngine dilithium) {
+            INSTANCE = new PqcSignatureService(dilithium);
+            return INSTANCE;
+        }
+    }
+
     @Configuration
     static class UserSuppliedEncryptionServiceConfig {
         // A plain hand-built instance (not a mocking-framework proxy) — simplest possible
@@ -164,8 +201,10 @@ class PqcAutoConfigurationWiringTest {
         static PqcEncryptionService INSTANCE;
 
         @Bean
-        PqcEncryptionService pqcEncryptionService(HybridHandshakeOrchestrator orchestrator, AesGcmEngine aesGcm) {
-            INSTANCE = new PqcEncryptionService(orchestrator, aesGcm);
+        PqcEncryptionService pqcEncryptionService(HybridHandshakeOrchestrator orchestrator,
+                                                   AesGcmEngine aesGcm,
+                                                   com.pqc.hybrid.handshake.KyberKemEngine kyberKemEngine) {
+            INSTANCE = new PqcEncryptionService(orchestrator, aesGcm, kyberKemEngine);
             return INSTANCE;
         }
     }

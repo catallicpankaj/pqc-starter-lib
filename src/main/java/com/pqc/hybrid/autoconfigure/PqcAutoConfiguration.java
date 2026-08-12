@@ -4,14 +4,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pqc.hybrid.actuator.PqcActuatorEndpoint;
 import com.pqc.hybrid.crypto.AesGcmEngine;
 import com.pqc.hybrid.crypto.PqcEncryptionService;
+import com.pqc.hybrid.crypto.PqcKeyPairGenerator;
 import com.pqc.hybrid.filter.HybridHandshakeFilter;
 import com.pqc.hybrid.handshake.HybridHandshakeOrchestrator;
+import com.pqc.hybrid.handshake.KyberKemEngine;
 import com.pqc.hybrid.jwt.DilithiumJwtAuthController;
 import com.pqc.hybrid.jwt.DilithiumJwtFilter;
 import com.pqc.hybrid.jwt.DilithiumJwtService;
 import com.pqc.hybrid.jwt.DilithiumKeyPairHolder;
 import com.pqc.hybrid.keymanagement.service.QuantumKeyService;
 import com.pqc.hybrid.signing.DilithiumSigningEngine;
+import com.pqc.hybrid.signing.PqcSignatureService;
 import com.pqc.hybrid.signing.SphincsSigningEngine;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.pqc.jcajce.provider.BouncyCastlePQCProvider;
@@ -38,8 +41,11 @@ import java.util.Optional;
  * Beans registered:
  *   - HybridHandshakeOrchestrator  (Kyber + ECDHE runtime switching)
  *   - HybridHandshakeFilter        (per-request mode switching)
+ *   - KyberKemEngine               (Kyber-768 KEM, standalone bean)
  *   - AesGcmEngine                 (AES-256-GCM authenticated encryption)
- *   - PqcEncryptionService         (top-level encrypt/decrypt-for-session API)
+ *   - PqcEncryptionService         (session-based AND public-key-addressed encrypt/decrypt)
+ *   - PqcSignatureService          (Dilithium-3 sign/verify facade)
+ *   - PqcKeyPairGenerator          (generates Kyber/Dilithium key pairs)
  *   - DilithiumSigningEngine       (quantum-safe signing)
  *   - SphincsSigningEngine         (hash-based signing)
  *   - PqcActuatorEndpoint          (/actuator/pqc)
@@ -70,6 +76,12 @@ public class PqcAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    KyberKemEngine kyberKemEngine() {
+        return new KyberKemEngine();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
     AesGcmEngine aesGcmEngine() {
         return new AesGcmEngine();
     }
@@ -77,8 +89,9 @@ public class PqcAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     PqcEncryptionService pqcEncryptionService(
-            HybridHandshakeOrchestrator orchestrator, AesGcmEngine aesGcmEngine) {
-        return new PqcEncryptionService(orchestrator, aesGcmEngine);
+            HybridHandshakeOrchestrator orchestrator, AesGcmEngine aesGcmEngine,
+            KyberKemEngine kyberKemEngine) {
+        return new PqcEncryptionService(orchestrator, aesGcmEngine, kyberKemEngine);
     }
 
     @Bean
@@ -91,6 +104,19 @@ public class PqcAutoConfiguration {
     @ConditionalOnMissingBean
     SphincsSigningEngine sphincsSigningEngine() {
         return new SphincsSigningEngine();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    PqcSignatureService pqcSignatureService(DilithiumSigningEngine dilithiumSigningEngine) {
+        return new PqcSignatureService(dilithiumSigningEngine);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    PqcKeyPairGenerator pqcKeyPairGenerator(
+            KyberKemEngine kyberKemEngine, DilithiumSigningEngine dilithiumSigningEngine) {
+        return new PqcKeyPairGenerator(kyberKemEngine, dilithiumSigningEngine);
     }
 
     @Bean
