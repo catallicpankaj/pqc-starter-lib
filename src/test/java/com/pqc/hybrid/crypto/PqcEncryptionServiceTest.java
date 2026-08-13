@@ -1,6 +1,6 @@
 package com.pqc.hybrid.crypto;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.pqc.hybrid.handshake.HybridHandshakeOrchestrator;
 import com.pqc.hybrid.handshake.KyberKemEngine;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;

@@ -1,6 +1,6 @@
 package com.pqc.hybrid.autoconfigure;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.pqc.hybrid.atrest.AtRestEncryptionController;
 import com.pqc.hybrid.atrest.AtRestEncryptionService;
 import com.pqc.hybrid.atrest.config.AtRestEncryptionAutoConfiguration;

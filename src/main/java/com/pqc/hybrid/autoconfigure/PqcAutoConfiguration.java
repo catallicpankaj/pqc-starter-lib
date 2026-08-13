@@ -1,6 +1,5 @@
 package com.pqc.hybrid.autoconfigure;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pqc.hybrid.actuator.PqcActuatorEndpoint;
 import com.pqc.hybrid.crypto.AesGcmEngine;
 import com.pqc.hybrid.crypto.PqcEncryptionService;
@@ -24,6 +23,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
+import tools.jackson.databind.ObjectMapper;
 
 import java.security.Security;
 import java.util.Optional;
