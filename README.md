@@ -2,7 +2,7 @@
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Java 17+](https://img.shields.io/badge/Java-17%2B-orange.svg)](#requirements)
-[![Spring Boot 3.3+](https://img.shields.io/badge/Spring%20Boot-3.3%2B-brightgreen.svg)](#requirements)
+[![Spring Boot 4.1+](https://img.shields.io/badge/Spring%20Boot-4.1%2B-brightgreen.svg)](#requirements)
 
 > A Spring Boot starter for **Hybrid Classical + Post-Quantum Cryptography**. Implements real
 > Kyber-768 (ML-KEM), Dilithium-3 (ML-DSA), and SPHINCS+ (SLH-DSA) with runtime switching between
@@ -82,7 +82,7 @@ PqcStarterLib closes that gap now by:
 ## Requirements
 
 - Java 17+
-- Spring Boot 3.3+
+- Spring Boot 4.1+
 - BouncyCastle 1.78.1+ (`bcprov-jdk18on`, `bcpkix-jdk18on`) — pulled in transitively
 
 ---

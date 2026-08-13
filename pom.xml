@@ -7,7 +7,7 @@
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
-    <version>3.3.0</version>
+    <version>4.1.0</version>
     <relativePath/>
   </parent>
 
@@ -55,6 +55,14 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-autoconfigure</artifactId>
+    </dependency>
+    <!-- Jackson 2 bridge: Spring Boot 4.x defaults to Jackson 3 (tools.jackson.*), but this
+         library's public API (PqcEncryptedPayload, DilithiumJwtService) uses Jackson 2
+         (com.fasterxml.jackson.*). This module restores auto-configuration of a
+         com.fasterxml.jackson.databind.ObjectMapper bean. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-jackson2</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
