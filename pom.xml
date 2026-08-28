@@ -11,9 +11,9 @@
     <relativePath/>
   </parent>
 
-  <groupId>com.pqc</groupId>
+  <groupId>io.github.catallicpankaj</groupId>
   <artifactId>pqc-starter-lib</artifactId>
-  <version>1.0.0-SNAPSHOT</version>
+  <version>2.0.0-sb4</version>
   <packaging>jar</packaging>
 
   <name>PqcStarterLib</name>
@@ -23,7 +23,7 @@
     runtime switching between CLASSICAL, PQC_ONLY, and HYBRID modes — protecting
     applications against both today's and tomorrow's threats.
   </description>
-  <url>https://github.com/your-org/pqc-starter-lib</url>
+  <url>https://github.com/catallicpankaj/pqc-starter-lib</url>
 
   <licenses>
     <license>
@@ -32,6 +32,21 @@
       <distribution>repo</distribution>
     </license>
   </licenses>
+
+  <developers>
+    <developer>
+      <id>catallicpankaj</id>
+      <name>Pankaj Sharma</name>
+      <email>catallic.pankaj@gmail.com</email>
+      <url>https://github.com/catallicpankaj</url>
+    </developer>
+  </developers>
+
+  <scm>
+    <connection>scm:git:https://github.com/catallicpankaj/pqc-starter-lib.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com/catallicpankaj/pqc-starter-lib.git</developerConnection>
+    <url>https://github.com/catallicpankaj/pqc-starter-lib</url>
+  </scm>
 
   <properties>
     <java.version>17</java.version>
@@ -103,7 +118,7 @@
         <configuration>
           <!-- Keep the thin jar as the primary artifact so other projects
                can depend on pqc-starter-lib as a library. The executable
-               fat jar is still produced as pqc-starter-lib-1.0.0-SNAPSHOT-exec.jar -->
+               fat jar is still produced as pqc-starter-lib-2.0.0-sb4-exec.jar -->
           <classifier>exec</classifier>
         </configuration>
       </plugin>
@@ -119,5 +134,79 @@
       </plugin>
     </plugins>
   </build>
+
+  <profiles>
+    <!-- Activated in CI via -Prelease to publish a signed release to Maven Central.
+         Kept out of the default build so local `mvn test`/`install` don't need a GPG key. -->
+    <profile>
+      <id>release</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-source-plugin</artifactId>
+            <version>3.3.1</version>
+            <executions>
+              <execution>
+                <id>attach-sources</id>
+                <phase>package</phase>
+                <goals>
+                  <goal>jar-no-fork</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-javadoc-plugin</artifactId>
+            <version>3.10.1</version>
+            <configuration>
+              <doclint>none</doclint>
+              <failOnError>false</failOnError>
+            </configuration>
+            <executions>
+              <execution>
+                <id>attach-javadocs</id>
+                <phase>package</phase>
+                <goals>
+                  <goal>jar</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-gpg-plugin</artifactId>
+            <version>3.2.7</version>
+            <executions>
+              <execution>
+                <id>sign-artifacts</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>sign</goal>
+                </goals>
+              </execution>
+            </executions>
+            <configuration>
+              <gpgArguments>
+                <arg>--pinentry-mode</arg>
+                <arg>loopback</arg>
+              </gpgArguments>
+            </configuration>
+          </plugin>
+          <plugin>
+            <groupId>org.sonatype.central</groupId>
+            <artifactId>central-publishing-maven-plugin</artifactId>
+            <version>0.11.0</version>
+            <extensions>true</extensions>
+            <configuration>
+              <publishingServerId>central</publishingServerId>
+              <autoPublish>true</autoPublish>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 
 </project>
