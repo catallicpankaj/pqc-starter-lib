@@ -4,6 +4,20 @@
 [![Java 17+](https://img.shields.io/badge/Java-17%2B-orange.svg)](#requirements)
 [![Spring Boot 3.3+](https://img.shields.io/badge/Spring%20Boot-3.3%2B-brightgreen.svg)](#requirements)
 
+## Which Version Do I Need?
+
+This library is developed on two branches, one per target Spring Boot major version. Pick the
+release tag / branch matching the Spring Boot version of your app:
+
+| Target Spring Boot Version | Library Release Tag | Branch |
+|---|---|---|
+| Spring Boot 3.x | [`v1.0.0`](../../releases/tag/v1.0.0) | [`main`](../../tree/main) |
+| Spring Boot 4.1.0+ | [`v2.0.0-sb4`](../../releases/tag/v2.0.0-sb4) | [`spring-upgrade-v4.1.0`](../../tree/spring-upgrade-v4.1.0) |
+
+> You are currently viewing the **`main`** branch — targeting **Spring Boot 3.3.0**.
+> To integrate with SB 4.1.x use **`spring-upgrade-v4.1.0`** branch — targeting **Spring Boot 4.1.0**.
+---
+
 > A Spring Boot starter for **Hybrid Classical + Post-Quantum Cryptography**. Implements real
 > Kyber-768 (ML-KEM), Dilithium-3 (ML-DSA), and SPHINCS+ (SLH-DSA) with runtime switching between
 > `CLASSICAL`, `PQC_ONLY`, and `HYBRID` modes — protecting applications against both today's and
