@@ -13,7 +13,7 @@
 
   <groupId>io.github.catallicpankaj</groupId>
   <artifactId>pqc-starter-lib</artifactId>
-  <version>1.0.0-SNAPSHOT</version>
+  <version>1.0.0</version>
   <packaging>jar</packaging>
 
   <name>PqcStarterLib</name>
